@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"> <!-- 设置文档编码为UTF-8 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- 视口设置，确保移动设备上页面正常显示 -->
+    <title>Layered Circular Reducing Sector Clock</title> <!-- 页面标题 -->
+    <style>
+        body {
+            display: flex; /* 使用Flex布局 */
+            justify-content: center; /* 水平居中 */
+            align-items: center; /* 垂直居中 */
+            height: 100vh; /* 高度设置为视窗的100% */
+            margin: 0; /* 移除默认的边距 */
+            background-color: #f0f0f0; /* 背景颜色 */
+            font-family: Arial, sans-serif; /* 设置字体 */
+        }
+        .clock {
+            position: relative; /* 相对定位 */
+            width: 600px; /* 宽度设置 */
+            height: 600px; /* 高度设置 */
+        }
+        .digital-time {
+            position: absolute; /* 绝对定位 */
+            top: 50%; /* 垂直位置 */
+            left: 130%; /* 水平位置 */
+            transform: translate(-50%, -50%); /* 调整位置，使其居中 */
+            font-size: 52px; /* 字体大小 */
+            text-align: center; /* 文本居中 */
+        }
+        .digital-day {
+            position: absolute; /* 绝对定位 */
+            top: 50%; /* 垂直位置 */
+            left: -40%; /* 水平位置 */
+            transform: translate(-50%, -50%); /* 调整位置，使其居中 */
+            font-size: 52px; /* 字体大小 */
+            text-align: center; /* 文本居中 */
+        }
+    </style>
+</head>
+<body>
+    <div class="clock">
+        <svg width="600" height="600" viewBox="0 0 100 100"> <!-- SVG画布，用于绘制时钟 -->
+            <circle cx="50" cy="50" r="48" fill="none" stroke="#eee" stroke-width="1" /> <!-- 外圆环 -->
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#eee" stroke-width="1" /> <!-- 中圆环 -->
+            <circle cx="50" cy="50" r="32" fill="none" stroke="#eee" stroke-width="1" /> <!-- 内圆环 -->
+            <path id="hours" fill="none" stroke="#FF6B6B" stroke-width="1" /> <!-- 小时指针 -->
+            <path id="minutes" fill="none" stroke="#4ECDC4" stroke-width="1" /> <!-- 分钟指针 -->
+            <path id="seconds" fill="none" stroke="#45B7D1" stroke-width="1" /> <!-- 秒针 -->
+        </svg>
+        <div class="digital-time"></div> <!-- 数字时间显示 -->
+        <div class="digital-day"></div> <!-- 数字日期显示 -->
+    </div>
+
+    <script>
+        function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+            const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0; // 将角度转换为弧度
+            return {
+                x: centerX + (radius * Math.cos(angleInRadians)), // 计算极坐标转换后的x坐标
+                y: centerY + (radius * Math.sin(angleInRadians)) // 计算极坐标转换后的y坐标
+            };
+        }
+
+        function describeArc(x, y, radius, startAngle, endAngle, fill) {
+            const start = polarToCartesian(x, y, radius, startAngle); // 计算起始点
+            const end = polarToCartesian(x, y, radius, endAngle); // 计算结束点
+            const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1"; // 判断是否需要大弧标记
+            const d = [
+                "M", x, y, // 移动到圆心
+                "L", start.x, start.y, // 画线到起始点
+                "A", radius, radius, 0, largeArcFlag, 1, end.x, end.y, // 画弧
+                "L", x, y, // 画线回到圆心
+                "Z"
+            ].join(" "); // 路径命令
+            return { d, fill }; // 返回路径命令和填充色
+        }
+        
+        function updateClock() {
+            const now = new Date(); // 获取当前时间
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1; // 月份从0开始，所以加1
+            const date = now.getDate();
+
+            updateArc('hours', 24-hours, 24, 48, "#FF7C7C"); // 更新小时指针
+            updateArc('minutes', 60-minutes, 60, 40, "#5FDED5"); // 更新分钟指针
+            updateArc('seconds', 60-seconds, 60, 32, "#56C8E2"); // 更新秒针
+
+            document.querySelector('.digital-time').textContent = `${padZero(hours)}:${padZero(minutes)}:${padZero(seconds)}`; // 更新数字时间
+            document.querySelector('.digital-day').textContent = `${year}-${padZero(month)}-${padZero(date)}`; // 更新数字日期
+        }
+
+        function updateArc(id, value, max, radius, color) {
+            const percentage = value / max; // 计算百分比
+            const angle = -360 * percentage; // 计算角度
+            const arc = describeArc(50, 50, radius, angle, 0, color); // 描述弧
+            document.getElementById(id).setAttribute('d', arc.d); // 设置路径
+            document.getElementById(id).setAttribute('fill', arc.fill); // 设置填充色
+        }
+
+        function padZero(num) {
+            return num.toString().padStart(2, '0'); // 补零函数
+        }
+
+        // 每秒更新一次时钟
+        setInterval(updateClock, 1000);
+        updateClock(); // 初始更新
+    </script>
+</body>
+</html>
